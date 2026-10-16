@@ -1,0 +1,60 @@
+name: Build EXE
+
+# Gera o AssinaturaEntrega.exe no Windows.
+# - A cada push / pull request: compila e sobe o .exe como artefato (aba Actions).
+# - Ao criar uma tag v* (ex.: v1.0.0): também publica um Release com o .zip.
+# - Pode ser rodado manualmente em Actions > Build EXE > Run workflow.
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore src/AssinaturaEntrega/AssinaturaEntrega.csproj
+
+      - name: Publish (self-contained, single-file)
+        run: >
+          dotnet publish src/AssinaturaEntrega/AssinaturaEntrega.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -o publish
+
+      - name: Compactar saída
+        run: Compress-Archive -Path publish/* -DestinationPath AssinaturaEntrega-win-x64.zip
+        shell: pwsh
+
+      - name: Upload do artefato (.exe + appsettings)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AssinaturaEntrega-win-x64
+          path: publish/**
+          if-no-files-found: error
+
+      - name: Publicar Release (somente em tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AssinaturaEntrega-win-x64.zip
+          generate_release_notes: true
