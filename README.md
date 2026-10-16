@@ -83,6 +83,33 @@ O workflow publica automaticamente um **Release** com o `AssinaturaEntrega-win-x
 
 ---
 
+## Ambiente de teste: VM Windows 11 no Linux (quickemu/KVM)
+
+Como o app é WPF (só Windows) e o desenvolvimento é feito em Ubuntu, existe uma VM
+Windows 11 pt-BR em `~/VMs/windows-11-Brazilian-Portuguese.conf` (16 threads, 10 GB, SPICE),
+com .NET 8 SDK e OpenSSH Server já instalados. O script [`tools/vm.sh`](tools/vm.sh) concentra tudo:
+
+```bash
+tools/vm.sh start    # liga a VM e abre o visualizador (fechar o visualizador NÃO desliga a VM)
+tools/vm.sh build    # envia os fontes, compila na VM e traz publish/AssinaturaEntrega.exe
+tools/vm.sh run      # abre o app compilado dentro da VM
+tools/vm.sh ssh      # PowerShell na VM (usuário Quickemu, chave ~/.ssh/id_ed25519_vmwin, porta 22220)
+tools/vm.sh webcam   # lista webcams do host e explica como passá-las para a VM
+tools/vm.sh stop     # desliga o Windows de forma limpa
+```
+
+### Webcam na VM
+- **A quente** (sem reiniciar): na janela do `spicy`, menu *Input → Select USB Devices for redirection…* e marque a webcam.
+- **Permanente**: pegue o ID `VENDOR:PRODUCT` com `lsusb`, coloque `usb_devices=("vvvv:pppp")` no `.conf` da VM e reinicie-a (`tools/vm.sh stop && tools/vm.sh start`).
+- Se o app abrir a câmera errada, ajuste `Camera.DeviceIndex` no `appsettings.json`.
+
+> Detalhes de como a VM foi montada (ISO oficial da Microsoft, correção do `autounattend.xml`
+> do quickemu 4.9.7 — issue quickemu #1958 —, OpenSSH via MSI) ficaram anotados para
+> reprodução; o projeto em si não depende da VM: o `.exe` também pode ser gerado pelo
+> GitHub Actions ou em qualquer Windows com o .NET 8 SDK.
+
+---
+
 ## Configuração (`appsettings.json`)
 
 Fica **ao lado do `.exe`**. Edite pelo menu *Arquivo → Editar configurações* ou no bloco de notas.

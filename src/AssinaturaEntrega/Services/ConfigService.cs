@@ -19,7 +19,10 @@ public class ConfigService
 
     public ConfigService()
     {
-        ConfigPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        // Em publish single-file, AppContext.BaseDirectory é a pasta temporária de
+        // extração; a pasta real do .exe vem de Environment.ProcessPath.
+        string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+        ConfigPath = Path.Combine(exeDir, "appsettings.json");
     }
 
     public AppSettings Load()

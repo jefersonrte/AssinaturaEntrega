@@ -7,6 +7,7 @@ using AssinaturaEntrega.Models;
 using AssinaturaEntrega.Services;
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
+using Window = System.Windows.Window; // OpenCvSharp também define "Window"
 
 namespace AssinaturaEntrega;
 

@@ -45,14 +45,14 @@ public sealed class ArchiveService
 
         Directory.CreateDirectory(folder);
 
-        if (_settings.SaveSignatureCrop && signatureCrop is { Empty: false })
+        if (_settings.SaveSignatureCrop && signatureCrop is not null && !signatureCrop.Empty())
         {
             string path = Path.Combine(folder, "signature.png");
             WritePng(path, signatureCrop);
             record.SignatureImagePath = path;
         }
 
-        if (_settings.SaveOriginal && original is { Empty: false })
+        if (_settings.SaveOriginal && original is not null && !original.Empty())
         {
             string path = Path.Combine(folder, "original.png");
             WritePng(path, original);
