@@ -1,0 +1,59 @@
+:root {
+  --azul: #0a66c2; --azul-escuro: #084d93; --cinza: #f3f4f6; --borda: #d1d5db;
+  --texto: #1f2937; --ok: #2e7d32; --erro: #c62828; --aviso-bg: #fff8e1; --aviso-borda: #f6c343;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: var(--texto); background: var(--cinza); font-size: 15px; }
+a { color: var(--azul); }
+h1 { font-size: 1.5rem; margin: 0 0 1rem; }
+h2 { font-size: 1.1rem; margin: 1.2rem 0 .5rem; }
+
+.topo { display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid var(--borda); padding: .6rem 1.2rem; }
+.marca { font-weight: 600; text-decoration: none; color: var(--texto); font-size: 1.05rem; }
+.topo nav a { margin-left: 1.2rem; text-decoration: none; font-weight: 500; }
+.conteudo { max-width: 1200px; margin: 1.2rem auto; padding: 0 1rem; }
+.rodape { text-align: center; color: #6b7280; font-size: .85rem; padding: 2rem 0; }
+
+.filtros { display: flex; flex-wrap: wrap; gap: .6rem .9rem; align-items: flex-end; background: #fff; border: 1px solid var(--borda); border-radius: 8px; padding: .9rem; margin-bottom: 1rem; }
+.filtros label { display: flex; flex-direction: column; font-size: .85rem; color: #4b5563; gap: .2rem; }
+input, select { padding: .45rem .55rem; border: 1px solid var(--borda); border-radius: 6px; font: inherit; min-width: 150px; }
+button, .btn-sec { padding: .5rem .9rem; border-radius: 6px; border: 1px solid var(--azul); background: var(--azul); color: #fff; font: inherit; cursor: pointer; text-decoration: none; display: inline-block; }
+button:hover { background: var(--azul-escuro); }
+.btn-sec { background: #fff; color: var(--azul); }
+.btn-sec:hover { background: #eef5fc; }
+
+.resumo { color: #4b5563; margin: .3rem 0 .6rem; }
+.vazio { background: #fff; border: 1px dashed var(--borda); border-radius: 8px; padding: 1.5rem; text-align: center; color: #6b7280; }
+.aviso { background: var(--aviso-bg); border: 1px solid var(--aviso-borda); border-radius: 6px; padding: .6rem .9rem; }
+.erro { color: var(--erro); }
+.ok { color: var(--ok); font-weight: 600; }
+.off { color: var(--erro); font-weight: 600; }
+
+table.lista { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
+table.lista th, table.lista td { padding: .55rem .7rem; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
+table.lista th { background: #f9fafb; font-weight: 600; font-size: .85rem; color: #4b5563; }
+table.lista tr:last-child td { border-bottom: 0; }
+table.lista tr.inativo td { opacity: .55; }
+td.thumb img { height: 48px; max-width: 160px; object-fit: contain; background: #fff; border: 1px solid #eee; border-radius: 4px; }
+td.acoes { white-space: nowrap; }
+td.acoes form { display: inline-block; margin-right: .3rem; }
+code.token { font-size: .8rem; background: #f3f4f6; padding: .2rem .4rem; border-radius: 4px; cursor: copy; word-break: break-all; }
+
+.paginacao { display: flex; gap: 1rem; justify-content: center; align-items: center; margin: 1rem 0; }
+
+.detalhe { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+.detalhe section { background: #fff; border: 1px solid var(--borda); border-radius: 8px; padding: 1rem; }
+.detalhe img { max-width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; }
+.detalhe img.assin { max-height: 320px; }
+.detalhe dl { display: grid; grid-template-columns: max-content 1fr; gap: .4rem .9rem; margin: 0; }
+.detalhe dt { color: #6b7280; font-size: .85rem; }
+.detalhe dd { margin: 0; }
+@media (max-width: 800px) { .detalhe { grid-template-columns: 1fr; } }
+
+.ajuda { background: #fff; border: 1px solid var(--borda); border-radius: 8px; padding: 1rem 1.2rem; margin-top: 1.5rem; }
+
+.login-body { display: grid; place-items: center; min-height: 100vh; }
+.login { background: #fff; border: 1px solid var(--borda); border-radius: 10px; padding: 2rem; width: 340px; display: flex; flex-direction: column; gap: .7rem; }
+.login h1 { font-size: 1.25rem; margin: 0; }
+.login .sub { margin: -.4rem 0 .6rem; color: #6b7280; }
+.login label { display: flex; flex-direction: column; gap: .2rem; font-size: .9rem; }

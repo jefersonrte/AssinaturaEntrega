@@ -88,6 +88,64 @@ public sealed class ApiExportService
         }
     }
 
+    /// <summary>
+    /// Testa servidor + token (GET {BaseUrl}{PingPath}). Retorna mensagem amigável.
+    /// </summary>
+    public async Task<ExportResult> PingAsync(CancellationToken ct = default)
+    {
+        if (!IsConfigured)
+            return new ExportResult { Success = false, Message = "API não configurada (BaseUrl vazio ou desabilitada)." };
+
+        string url = _settings.BaseUrl.TrimEnd('/') + "/" + (_settings.PingPath ?? "/api/ping").TrimStart('/');
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (!string.IsNullOrWhiteSpace(_settings.AuthToken))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.AuthToken);
+
+            using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+            int code = (int)response.StatusCode;
+            string body = await SafeReadBody(response, ct).ConfigureAwait(false);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Extrai o nome do cliente do JSON ({"cliente":"..."}) sem depender de modelo.
+                string cliente = "";
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("cliente", out var c)) cliente = c.GetString() ?? "";
+                }
+                catch { /* corpo não-JSON: ignora */ }
+
+                return new ExportResult
+                {
+                    Success = true, StatusCode = code,
+                    Message = string.IsNullOrEmpty(cliente)
+                        ? "Conexão OK."
+                        : $"Conexão OK — autenticado como cliente \"{cliente}\"."
+                };
+            }
+
+            string motivo = code switch
+            {
+                401 => "token inválido ou ausente",
+                403 => "cliente desativado no servidor",
+                404 => "endereço não encontrado (confira a URL do servidor)",
+                _ => body
+            };
+            return new ExportResult { Success = false, StatusCode = code, Message = $"HTTP {code}: {motivo}" };
+        }
+        catch (TaskCanceledException)
+        {
+            return new ExportResult { Success = false, Message = "Tempo limite excedido ao contatar o servidor." };
+        }
+        catch (Exception ex)
+        {
+            return new ExportResult { Success = false, Message = ex.Message };
+        }
+    }
+
     private static void AddFile(MultipartFormDataContent content, string field, string? path)
     {
         if (string.IsNullOrEmpty(path) || !File.Exists(path))

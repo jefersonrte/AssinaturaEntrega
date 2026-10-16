@@ -1,8 +1,21 @@
 # Captura de Assinatura de Entrega
 
-Aplicativo **desktop para Windows 11** que usa a **webcam** para capturar o canhoto/assinatura de entrega, **detecta automaticamente a região da assinatura** (recorta do fundo), **arquiva localmente** de forma organizada e **envia para um sistema web via API REST**.
+Aplicativo **desktop para Windows 11** que usa a **webcam** para capturar o canhoto/assinatura de entrega, **detecta automaticamente a região da assinatura** (recorta do fundo), **arquiva localmente** de forma organizada e **envia para um servidor via API REST**.
 
-Feito em **C# / .NET 8 (WPF)** com **OpenCV** (OpenCvSharp).
+Feito em **C# / .NET 8 (WPF)** com **OpenCV** (OpenCvSharp). Acompanha:
+
+- um **instalador Windows** (`Setup.exe`, Inno Setup) para distribuir aos clientes — pasta [`installer/`](installer/);
+- um **servidor de armazenamento** (PHP 8 + SQLite, em Docker) com **painel web** e **tokens por cliente** — pasta [`servidor/`](servidor/).
+
+```
+ PC do cliente (Windows)                     Seu servidor (Linux + Docker)
+ ┌──────────────────────────┐   POST /api/assinaturas   ┌─────────────────────────────┐
+ │ AssinaturaEntrega.exe    │ ───── Bearer <token> ───▶ │ servidor/  (porta 8080)      │
+ │ webcam → recorte → envio │                           │  • API (recebe e guarda)     │
+ │ fila local se sem rede   │ ◀──── 201 {ok:true} ───── │  • painel web (busca/baixa)  │
+ └──────────────────────────┘                           │  • clientes & tokens         │
+                                                        └─────────────────────────────┘
+```
 
 ---
 
@@ -150,7 +163,56 @@ Fica **ao lado do `.exe`**. Edite pelo menu *Arquivo → Editar configurações*
 
 ---
 
-## Contrato da API REST (o que o seu sistema web recebe)
+## Instalador Windows (`installer/`)
+
+O [`installer/AssinaturaEntrega.iss`](installer/AssinaturaEntrega.iss) gera um `Setup.exe` em português que:
+
+- instala em `Arquivos de Programas\AssinaturaEntrega`, cria atalhos e desinstalador;
+- **pergunta a URL do servidor, o token do cliente e a identificação do computador** e grava
+  `C:\ProgramData\AssinaturaEntrega\appsettings.json` (editável por qualquer usuário);
+- em atualização, mantém a configuração existente;
+- aceita instalação silenciosa: `AssinaturaEntrega-Setup-1.0.0.exe /VERYSILENT /URL=http://servidor:8080 /TOKEN=xxxx /DEVICE=BALCAO-01`.
+
+Gerar: com o `.exe` publicado e o [Inno Setup 6](https://jrsoftware.org/isinfo.php) instalado,
+`ISCC.exe installer\AssinaturaEntrega.iss` → `installer\Output\AssinaturaEntrega-Setup-<versão>.exe`.
+Na VM de desenvolvimento: `tools/vm.sh build && tools/vm.sh installer`. O GitHub Actions também gera o instalador.
+
+> **SmartScreen:** sem assinatura de código, o Windows mostra "Aplicativo não reconhecido" na primeira execução
+> do Setup (o cliente clica em *Mais informações → Executar assim mesmo*). Para distribuição comercial vale
+> comprar um certificado de **code signing** (OV/EV) e assinar `Setup.exe` e `AssinaturaEntrega.exe`.
+
+---
+
+## Servidor de armazenamento (`servidor/`)
+
+PHP 8.3 + Apache + SQLite, sem dependências externas, pronto para Docker. Guarda as imagens em disco e os
+metadados em SQLite; tem painel web com login e **um token por cliente** (empresa que comprou o app).
+
+```bash
+cd servidor
+cp .env.example .env          # defina ADMIN_USUARIO / ADMIN_SENHA
+docker compose up -d --build  # sobe em http://IP-DO-SERVIDOR:8080
+```
+
+- **Painel:** `http://IP:8080/` → login → *Assinaturas* (busca por pedido, destinatário, data, dispositivo, cliente;
+  miniaturas; download) e *Clientes* (criar cliente = gerar token; desativar; trocar token).
+- **CLI:** `docker compose exec -u www-data assinaturas php bin/cliente.php criar "Nome"`.
+- **Dados:** tudo fica em `servidor/data/` (`banco.sqlite` + `uploads/<cliente>/<ano>/<mês>/`). **Faça backup dessa pasta.**
+- **Firewall:** libere a porta 8080 (ou a que definir em `.env`) para os PCs dos clientes alcançarem o servidor.
+- **Internet / HTTPS:** para clientes fora da sua rede, coloque um proxy com TLS na frente (ex.: Caddy ou Nginx
+  com Let's Encrypt) apontando para a porta 8080, e use `https://...` na instalação do app.
+
+### Modelo comercial sugerido
+1. Você hospeda **um** servidor (este Linux ou uma VPS) para todos os clientes.
+2. Para cada cliente: painel → *Clientes* → **Criar e gerar token**.
+3. Entrega ao cliente o `Setup.exe` + URL do servidor + token (ou um `.bat` com a instalação silenciosa).
+4. Fim de contrato: *Desativar* o cliente (os envios passam a receber HTTP 403 e ficam pendentes no app).
+5. O cliente consulta as assinaturas pelo painel (crie um usuário por cliente quando precisar — hoje o painel tem
+   um único administrador; esse é o próximo passo natural) ou integra pela API `GET /api/assinaturas`.
+
+---
+
+## Contrato da API REST
 
 **POST** `{BaseUrl}{UploadPath}` — `multipart/form-data`
 
@@ -165,10 +227,14 @@ Fica **ao lado do `.exe`**. Edite pelo menu *Arquivo → Editar configurações*
 | `signature`     | arquivo | PNG do recorte da assinatura       |
 | `original`      | arquivo | PNG do frame completo (se ligado)  |
 
-Header opcional: `Authorization: Bearer <AuthToken>`
-Sucesso: qualquer **HTTP 2xx**.
+Header: `Authorization: Bearer <token do cliente>`
+Sucesso: qualquer **HTTP 2xx** (`201` criado; `200 {duplicado:true}` se o mesmo `id` for reenviado).
+Erros: `401` token inválido, `403` cliente desativado, `400` campos/arquivo faltando.
 
-Um endpoint de exemplo em PHP está em [`exemplo-servidor/receber.php`](exemplo-servidor/receber.php) — útil para testar antes de integrar ao seu sistema real.
+**GET** `{BaseUrl}/api/ping` — testa servidor + token (menu *Envio → Testar conexão* no app).
+**GET** `{BaseUrl}/api/assinaturas?pedido=&de=&ate=&dispositivo=&limite=` — lista em JSON as assinaturas do cliente do token.
+
+A implementação de referência é o [`servidor/`](servidor/) deste repositório.
 
 ---
 
@@ -179,7 +245,13 @@ AssinaturaEntrega/
 ├─ AssinaturaEntrega.sln
 ├─ build.ps1                       # gera o .exe
 ├─ README.md
-├─ exemplo-servidor/receber.php    # endpoint de teste
+├─ installer/AssinaturaEntrega.iss # instalador Windows (Inno Setup)
+├─ servidor/                       # servidor de armazenamento (PHP + SQLite + Docker)
+│  ├─ docker-compose.yml, Dockerfile, .env.example
+│  ├─ public/  (painel: index, assinatura, clientes, login; API: api/assinaturas, api/ping)
+│  ├─ src/bootstrap.php            # banco, auth por token, sessão do painel
+│  └─ bin/cliente.php              # CLI de clientes/tokens
+├─ tools/vm.sh                     # VM Windows de desenvolvimento (build/run/installer)
 └─ src/AssinaturaEntrega/
    ├─ AssinaturaEntrega.csproj
    ├─ appsettings.json

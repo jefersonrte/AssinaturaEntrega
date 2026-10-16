@@ -41,6 +41,7 @@ public class ApiSettings
     public bool Enabled { get; set; } = true;
     public string BaseUrl { get; set; } = "";
     public string UploadPath { get; set; } = "/api/assinaturas";
+    public string PingPath { get; set; } = "/api/ping";
     public string AuthToken { get; set; } = "";
     public int TimeoutSeconds { get; set; } = 30;
     public bool SendOriginal { get; set; } = false;

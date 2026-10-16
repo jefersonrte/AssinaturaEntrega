@@ -227,6 +227,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void TestConnection_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_api.IsConfigured)
+        {
+            MessageBox.Show("API não está configurada (veja appsettings.json).", "Testar conexão",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        SetStatus("Testando conexão com o servidor...");
+        var result = await _api.PingAsync();
+        SetStatus(result.Message ?? string.Empty);
+        MessageBox.Show(
+            (result.Success ? "✔ " : "✖ ") + result.Message + "\n\nServidor: " + _settings.Api.BaseUrl,
+            "Testar conexão",
+            MessageBoxButton.OK,
+            result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+    }
+
     private async void ResendPending_Click(object sender, RoutedEventArgs e)
     {
         if (!_api.IsConfigured)

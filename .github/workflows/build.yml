@@ -45,6 +45,13 @@ jobs:
         run: Compress-Archive -Path publish/* -DestinationPath AssinaturaEntrega-win-x64.zip
         shell: pwsh
 
+      - name: Gerar instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q installer\AssinaturaEntrega.iss
+          Get-ChildItem installer\Output
+
       - name: Upload do artefato (.exe + appsettings)
         uses: actions/upload-artifact@v4
         with:
@@ -52,9 +59,18 @@ jobs:
           path: publish/**
           if-no-files-found: error
 
+      - name: Upload do instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: AssinaturaEntrega-Setup
+          path: installer/Output/*.exe
+          if-no-files-found: error
+
       - name: Publicar Release (somente em tag v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: AssinaturaEntrega-win-x64.zip
+          files: |
+            AssinaturaEntrega-win-x64.zip
+            installer/Output/*.exe
           generate_release_notes: true

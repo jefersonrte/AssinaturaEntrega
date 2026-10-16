@@ -17,12 +17,21 @@ public class ConfigService
 
     public string ConfigPath { get; }
 
+    /// <summary>Pasta de configuração usada pelo instalador (gravável por todos os usuários).</summary>
+    public static string ProgramDataDir =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AssinaturaEntrega");
+
     public ConfigService()
     {
         // Em publish single-file, AppContext.BaseDirectory é a pasta temporária de
         // extração; a pasta real do .exe vem de Environment.ProcessPath.
         string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
-        ConfigPath = Path.Combine(exeDir, "appsettings.json");
+
+        // Instalado (Program Files): o instalador grava a config em
+        // %ProgramData%\AssinaturaEntrega\appsettings.json. Se existir, ela manda.
+        // Senão (versão portátil / desenvolvimento), usa o arquivo ao lado do .exe.
+        string instalado = Path.Combine(ProgramDataDir, "appsettings.json");
+        ConfigPath = File.Exists(instalado) ? instalado : Path.Combine(exeDir, "appsettings.json");
     }
 
     public AppSettings Load()

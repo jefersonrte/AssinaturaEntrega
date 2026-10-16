@@ -1,0 +1,17 @@
+# Servidor de armazenamento das assinaturas.
+#   cp .env.example .env   (edite usuário/senha do painel)
+#   docker compose up -d --build
+# Painel: http://IP-DO-SERVIDOR:8080/   API: http://IP-DO-SERVIDOR:8080/api/assinaturas
+services:
+  assinaturas:
+    build: .
+    container_name: assinaturas-servidor
+    restart: unless-stopped
+    ports:
+      - "${PORTA:-8080}:80"
+    environment:
+      ADMIN_USUARIO: "${ADMIN_USUARIO:-admin}"
+      ADMIN_SENHA: "${ADMIN_SENHA:-admin}"
+      TZ: "${TZ:-America/Sao_Paulo}"
+    volumes:
+      - ./data:/var/www/html/data   # banco SQLite + imagens (faça backup desta pasta)

@@ -3,3 +3,6 @@ obj/
 publish/
 *.user
 .vs/
+
+# instalador gerado
+installer/Output/

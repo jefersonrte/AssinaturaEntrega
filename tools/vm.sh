@@ -6,6 +6,7 @@
 #   tools/vm.sh ssh [cmd]    abre um PowerShell na VM (ou roda um comando)
 #   tools/vm.sh build        envia os fontes, compila na VM e traz publish/AssinaturaEntrega.exe
 #   tools/vm.sh run          abre o app compilado dentro da VM (na sessão gráfica)
+#   tools/vm.sh installer    compila o instalador (Inno Setup) na VM e traz installer/Output/*.exe
 #   tools/vm.sh webcam       lista webcams USB do host e explica como passar para a VM
 #
 # Requisitos (já configurados em 2026-10-15): quickemu, VM em ~/VMs, chave ~/.ssh/id_ed25519_vmwin,
@@ -83,10 +84,40 @@ cmd_build() {
     echo "BUILD_OK"
 }
 
+cmd_installer() {
+    # Pré-requisito: tools/vm.sh build (gera publish\AssinaturaEntrega.exe na VM e sincroniza installer/).
+    # Inno Setup 6 instalado na VM em C:\Program Files (x86)\Inno Setup 6.
+    vm_running || { echo "VM desligada. Rode: tools/vm.sh start" >&2; exit 1; }
+    echo "Enviando script do instalador..."
+    vm_ssh "New-Item -ItemType Directory -Force -Path $GUEST_DIR/installer | Out-Null"
+    vm_scp "$ROOT/installer/AssinaturaEntrega.iss" "$SSH_USER@localhost:$GUEST_DIR/installer/"
+    echo "Compilando instalador na VM..."
+    vm_ssh "\$ErrorActionPreference='Stop'; Set-Location $GUEST_DIR;
+        if (-not (Test-Path publish\\AssinaturaEntrega.exe)) { throw 'publish\\AssinaturaEntrega.exe nao existe: rode tools/vm.sh build' };
+        if (Test-Path installer\\Output) { Remove-Item installer\\Output -Recurse -Force };
+        & 'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe' /Q installer\\AssinaturaEntrega.iss;
+        if (\$LASTEXITCODE -ne 0) { exit \$LASTEXITCODE };
+        Get-ChildItem installer\\Output | ForEach-Object { \$_.Name }"
+    mkdir -p "$ROOT/installer/Output"
+    local nome
+    nome="$(vm_ssh "(Get-ChildItem $GUEST_DIR/installer/Output -Filter *.exe | Select-Object -First 1).Name" | tr -d '\r')"
+    vm_scp "$SSH_USER@localhost:$GUEST_DIR/installer/Output/$nome" "$ROOT/installer/Output/"
+    ls -lh "$ROOT/installer/Output/$nome"
+    echo "INSTALLER_OK"
+}
+
 cmd_run() {
     # Sessões SSH no Windows não enxergam a área de trabalho; tools/vm-run.ps1 abre o app
     # por uma tarefa agendada interativa, na sessão gráfica do usuário logado.
-    vm_ssh 'powershell -NoProfile -Command -' < "$ROOT/tools/vm-run.ps1"
+    # Uso: tools/vm.sh run [caminho do .exe na VM]  (padrão: o publish de C:\dev)
+    local exe="${1:-}"
+    vm_ssh 'New-Item -ItemType Directory -Force -Path C:\temp | Out-Null'
+    vm_scp "$ROOT/tools/vm-run.ps1" "$SSH_USER@localhost:C:/temp/vm-run.ps1"
+    if [ -n "$exe" ]; then
+        vm_ssh "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\temp\\vm-run.ps1 -Exe '$exe'"
+    else
+        vm_ssh 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\temp\vm-run.ps1'
+    fi
 }
 
 cmd_webcam() {
@@ -121,7 +152,8 @@ case "${1:-}" in
     stop)   cmd_stop ;;
     ssh)    shift; cmd_ssh "$@" ;;
     build)  cmd_build ;;
-    run)    cmd_run ;;
+    run)    shift; cmd_run "$@" ;;
+    installer) cmd_installer ;;
     webcam) cmd_webcam ;;
     *) sed -n '2,12p' "$0"; exit 1 ;;
 esac

@@ -1,0 +1,9 @@
+# URLs sem .php:  /api/assinaturas -> api/assinaturas.php,  /api/ping -> api/ping.php
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+)$ $1.php [L]
+
+# Nunca listar diretórios
+Options -Indexes

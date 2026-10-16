@@ -20,6 +20,7 @@
                 <MenuItem Header="Sair" Click="Exit_Click" />
             </MenuItem>
             <MenuItem Header="_Envio">
+                <MenuItem Header="Testar conexão com o servidor" Click="TestConnection_Click" />
                 <MenuItem Header="Reenviar pendentes" Click="ResendPending_Click" />
             </MenuItem>
         </Menu>
