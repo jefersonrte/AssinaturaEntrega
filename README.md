@@ -19,6 +19,25 @@ Feito em **C# / .NET 8 (WPF)** com **OpenCV** (OpenCvSharp). Acompanha:
 
 ---
 
+## Instalação rápida (PC do cliente)
+
+Abra o **PowerShell** no Windows 11 e cole:
+
+```powershell
+irm https://raw.githubusercontent.com/jefersonrte/AssinaturaEntrega/main/instalar.ps1 | iex
+```
+
+O script baixa o Setup mais recente dos [Releases](https://github.com/jefersonrte/AssinaturaEntrega/releases), pergunta
+a URL do servidor / token / identificação do PC (ou usa `$env:AE_URL`, `$env:AE_TOKEN`, `$env:AE_DEVICE` se definidos antes)
+e instala. Rodar de novo **atualiza** mantendo a configuração. Para instalação totalmente silenciosa pela TI:
+
+```powershell
+$env:AE_URL='http://servidor:8080'; $env:AE_TOKEN='token-do-cliente'; $env:AE_DEVICE='BALCAO-01'
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jefersonrte/AssinaturaEntrega/main/instalar.ps1))) -Silencioso
+```
+
+---
+
 ## O que o app faz
 
 1. Mostra a **webcam ao vivo**.
