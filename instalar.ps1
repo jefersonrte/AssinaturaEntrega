@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Instala (ou atualiza) o Captura de Assinatura de Entrega a partir do último Release do GitHub.
 
